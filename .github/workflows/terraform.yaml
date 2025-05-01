@@ -23,10 +23,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Set up Terraform 1.14.0
+      - name: Set up Terraform 1.11.0
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 1.14.0
+          terraform_version: 1.11.0
 
       - name: Terraform Init
         run: terraform init -backend-config="bucket=sf-terraform-state-bucket-b7e2cb46" -backend-config="region=us-east-1"
