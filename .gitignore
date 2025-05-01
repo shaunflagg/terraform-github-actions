@@ -1,0 +1,22 @@
+# Terraform state
+terraform.tfstate
+terraform.tfstate.backup
+
+# Terraform provider plugins
+.terraform/
+
+# Terraform lock file (optional: keep if you want reproducible builds)
+.terraform.lock.hcl
+
+# Local environment variables
+.env
+
+# Ignore crash logs
+crash.log
+
+# Ignore override files as they are usually used locally
+*.tfvars
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
