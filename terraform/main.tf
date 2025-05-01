@@ -11,10 +11,10 @@ terraform {
       version = "~> 3.0"
     }
   }
-   backend "s3" {
-    bucket = "sf-terraform-state-bucket-b7e2cb46"
-    key    = "terraform.tfstate"
-    region = "us-east-1"
+    backend "s3" {
+      bucket = "sf-terraform-state-bucket-b7e2cb46"
+      key    = "terraform.tfstate"
+      region = "us-east-1"
   }
 }
 
