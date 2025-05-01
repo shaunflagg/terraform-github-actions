@@ -1,4 +1,4 @@
-name: "Terraform Infrastructure Change Management Pipeline"
+name: "Terraform Infrastructure Change Management"
 
 on:
   push:
@@ -12,73 +12,62 @@ on:
     paths:
       - terraform/**
 
-env:
-  TF_LOG: INFO
-  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
 jobs:
   terraform:
-    name: "Terraform Infrastructure Change Management"
+    name: "Terraform"
     runs-on: ubuntu-latest
     defaults:
       run:
-        shell: bash
-        working-directory: ./terraform
+        working-directory: terraform
+
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}    
 
     steps:
-      - name: Checkout the repository
-        uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Setup Terraform
+      - name: Set up Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 1.11.0
+          terraform_version: 1.6.6
 
       - name: Terraform Init
-        id: init
-        run: terraform init \
-          -backend-config="bucket=sf-terraform-state-bucket" \
-          -backend-config="key=terraform.tfstate" \
-          -backend-config="region=us-east-1" \
-          -backend-config="use_lockfile=true"
+        run: terraform init
 
-      - name: Terraform Format
-        id: fmt
+      - name: Terraform Format Check
         run: terraform fmt -check
 
       - name: Terraform Validate
-        id: validate
         run: terraform validate
 
       - name: Terraform Plan
         id: plan
-        if: github.event_name == 'pull_request'
-        run: |
-          terraform plan -no-color -input=false | tee plan.out
+        run: terraform plan -no-color
         continue-on-error: true
 
-      - name: Comment Plan on PR
+      - name: Save plan output
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v6
+        id: save-plan
+        run: |
+          terraform plan -no-color > plan.txt || true
+          echo 'PLAN_OUTPUT<<EOF' >> $GITHUB_ENV
+          cat plan.txt >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+
+      - name: Comment on PR with Terraform Plan
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
         with:
           script: |
-            const fs = require('fs');
-            const plan = fs.readFileSync('terraform/plan.out', 'utf8');
-            const output = `#### Terraform Format 🖌: \`${{ steps.fmt.outcome }}\`
-#### Init ⚙️: \`${{ steps.init.outcome }}\`
-#### Validate ✅: \`${{ steps.validate.outcome }}\`
-#### Plan 📖: \`${{ steps.plan.outcome }}\`
-
-<details><summary>Show Plan</summary>
+            const output = `### Terraform Plan 📖
 
 \`\`\`hcl
-${plan}
+${process.env.PLAN_OUTPUT}
 \`\`\`
 
-</details>
-
-*Triggered by @${{ github.actor }} on \`${{ github.event_name }}\`.*`;
+Triggered by @${{ github.actor }} on \`${{ github.event_name }}\`.`;
 
             github.rest.issues.createComment({
               issue_number: context.issue.number,
